@@ -6,7 +6,11 @@ Set up AWS and IAM roles
 - SageMakerRecyclingRole
 - recycling-assistant-dev User
 
-## Data Preparation Next Steps
-- Training and Test Split
-- Image Preprocessing Plan
-- Data Quality Check (increase Trash images w/ rotation and more)
+## Current Progress
+- Data Preprocessing & Preparation -- completed
+- CNN Model -- completed
+- Hyperparameter Tuned Model to gain best features -- complete
+
+## Next Steps
+- Create script for AWS processing
+- Create pipeline for AWS SageMaker & S3 Buckets, etc
