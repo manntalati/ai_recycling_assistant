@@ -12,8 +12,9 @@ Set up AWS and IAM roles
 - Hyperparameter Tuned Model to gain best features -- completed
 
 ## Next Steps
-- Create script for AWS processing
-- Create pipeline for AWS SageMaker & S3 Buckets, etc
+- BLOCKER: AWS SageMaker Quota for endpoint compute needs to be upgraded which the ticket has been submitted for
+- Deploy model on AWS SageMaker
+- Create pipeline with AWS Lambda, API Gatway & S3 Buckets for user-uploaded images
 
 -- Figure out what is wrong with the AWS endpoint and creating the endpoint for that
 AWS Steps:
