@@ -1,5 +1,6 @@
-import { Amplify } from 'aws-amplify';
+import { Amplify } from '@aws-amplify/core';
 //mport awsconfig from './aws-exports';
+import Storage from '@aws-amplify/storage'
 import { uploadData } from '@aws-amplify/storage';
 import 'react-native-get-random-values';
 import { StatusBar } from 'expo-status-bar';
@@ -16,8 +17,11 @@ import { useCallback } from 'react';
 
 Amplify.configure({
   Auth: {
-    region: 'us-east-1',
-    identityPoolId: 'us-east-1:5c380182-fc89-45e2-b943-1f7a84c291b4',
+    Cognito: {
+      identityPoolId: 'us-east-1:5c380182-fc89-45e2-b943-1f7a84c291b4',
+      //region: 'us-east-1',
+    }
+    //region: 'us-east-1',
   },
   Storage: {
     S3: {
@@ -44,7 +48,7 @@ enum MessageType {
 export default function App() {
   const [msg, setMsg] = useState<{ message: string; type: MessageType }>({
     message: "",
-    type: MessageType.EMPTY,
+    type: MessageType.FAILURE,
   });
   const [imageUri, setImageUri] = useState<string | null>(null);
 
@@ -71,7 +75,7 @@ export default function App() {
     if (uri) {
       const response = await fetch(uri);
       const blob = await response.blob();
-      const key = `uploads/${Date.now()}.jpg`;
+      const key = `images/${Date.now()}.jpeg`;
       try {
         await uploadData({
           key,
@@ -102,6 +106,15 @@ export default function App() {
         <View style={styles.button}>
           <Ionicons name="images-outline" size={20} /> <Button onPress={upload} title='Upload Image'></Button>
         </View>
+        <Text
+          style={
+            msg.type === MessageType.SUCCESS
+              ? styles.successText
+              : styles.failureText
+          }
+        >
+          {msg.message}
+        </Text>
         <View style={styles.image2}>
           <Text style={styles.text}>Prediction: </Text>
         {imageUri ? (
