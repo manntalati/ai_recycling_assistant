@@ -26,4 +26,4 @@ def output_fn(predictions, content_type):
         "predicted name": class_names[int(np.argmax(scores))],
         "score": float(scores[int(np.argmax(scores))])
     }
-    return json.dumps(res), "applications/json"
+    return json.dumps(res), "application/json"
