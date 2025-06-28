@@ -1,15 +1,29 @@
 import 'react-native-get-random-values';
-import { Amplify } from '@aws-amplify/core';
-import config from '/Users/manntalati/Desktop/Projects/recycling_assistant/ai_recycling_assistant/src/aws-exports';
-import Storage from '@aws-amplify/storage'
-import { uploadData } from '@aws-amplify/storage';
+import { Amplify, Storage } from 'aws-amplify';
+import awsconfig from './aws-exports';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Button, SafeAreaView, Image, TextInput } from 'react-native';
+import { StyleSheet, Text, View, Button, SafeAreaView, Image, Pressable } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import React, { useState } from 'react';
+//import DocumentPicker, { DocumentPickerResponse, isInProgress, types } from 'react-native-document-picker';
+//import AWSHelper from './awshelper.js';
 
-Amplify.configure(config);
+Amplify.configure(awsconfig);
+
+const result = await Storage.put('test.txt', 'Hello');
+
+async function pathToImageFile(imageUri: string) {
+  try {
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    await Storage.put('images', blob, {
+      contentType: 'image/jpeg' // contentType is optional
+    });
+  } catch (err) {
+    console.log('Error uploading file:', err);
+  }
+}
 
 //const client = new S3Client({
 //  region: "us-east-1",
@@ -26,6 +40,24 @@ enum MessageType {
 }
 
 export default function App() {
+    //const handleDocumentSelect = (value: Array<DocumentPickerResponse>): DocumentPickerResponse | any => {
+    //  AWSHelper.uploadFile(value[0].uri)
+    //}
+
+  //const handleError = (err: unknown) => {
+  //  if (DocumentPicker.isCancel(err)) {
+  //    console.warn('cancelled')
+  //    // User cancelled the picker, exit any dialogs or menus and move on
+  //  } else if (isInProgress(err)) {
+  //    console.warn('multiple pickers were opened, only the last will be considered')
+  //  } else {
+  //    throw err
+  //  }
+  //}
+
+  
+
+
   const [msg, setMsg] = useState<{ message: string; type: MessageType }>({
     message: "",
     type: MessageType.FAILURE,
@@ -50,22 +82,12 @@ export default function App() {
   async function upload() {
     const result = await ImagePicker.launchImageLibraryAsync();
     if (!result.canceled) {
-  const uri = result.assets && result.assets.length > 0 ? result.assets[0].uri : null;
-  setImageUri(uri);
+      const uri = result.assets && result.assets.length > 0 ? result.assets[0].uri : null;
+      setImageUri(uri);
 
-  if (uri) {
+      if (uri) {
     // Convert the image URI to a blob
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
-    const uploadResult = await uploadData({
-      key: `images/${Date.now()}.jpg`,
-      data: blob,
-      options: {
-        accessLevel: 'guest',       // or 'public'
-        contentType: 'image/jpeg',
-      },
-    });
+        pathToImageFile(uri);
 
     //console.log('S3 key is', uploadResult?.key);
     //setMsg({ message: `Uploaded as ${uploadResult?.key}`, type: MessageType.SUCCESS });

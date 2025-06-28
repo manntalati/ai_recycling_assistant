@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "recycling-app",
-    "slug": "recycling-app",
+    "name": "recycling-assistant",
+    "slug": "recycling-assistant",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "recyclingapp",
+    "scheme": "recyclingassistant",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.recycling-app"
+      "bundleIdentifier": "com.anonymous.recycling-assistant"
     },
     "android": {
       "adaptiveIcon": {

@@ -1,0 +1,194 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CloudFormation template for AI Recycling Assistant infrastructure",
+  "Parameters": {
+    "ModelName": {
+      "Type": "String",
+      "Default": "recycling-classifier-model",
+      "Description": "Name of the SageMaker model"
+    },
+    "EndpointName": {
+      "Type": "String",
+      "Default": "recycling-classifier-serverless",
+      "Description": "Name of the SageMaker endpoint"
+    }
+  },
+  "Resources": {
+    "RecyclingAssistantBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "recycling-assistant-data",
+        "PublicReadPolicy": false,
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        }
+      }
+    },
+    "SageMakerExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "SageMakerRecyclingRole",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "sagemaker.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "S3AccessPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject",
+                    "s3:ListBucket"
+                  ],
+                  "Resource": [
+                    {"Fn::Sub": "${RecyclingAssistantBucket}/*"},
+                    {"Fn::GetAtt": ["RecyclingAssistantBucket", "Arn"]}
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "SageMakerInvokePolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sagemaker:InvokeEndpoint"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/${EndpointName}"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "RecyclingClassifierFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "recycling-classifier-function",
+        "Runtime": "python3.9",
+        "Handler": "lambda_function.lambda_handler",
+        "Role": {"Fn::GetAtt": ["LambdaExecutionRole", "Arn"]},
+        "Code": {
+          "ZipFile": "import json\nimport boto3\n\ndef lambda_handler(event, context):\n    # Placeholder function\n    return {\n        'statusCode': 200,\n        'body': json.dumps('Recycling classifier function')\n    }"
+        },
+        "Environment": {
+          "Variables": {
+            "SAGEMAKER_ENDPOINT": {"Ref": "EndpointName"}
+          }
+        }
+      }
+    },
+    "ApiGateway": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "RecyclingAssistantAPI",
+        "Description": "API for Recycling Assistant service"
+      }
+    },
+    "ApiGatewayResource": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "RestApiId": {"Ref": "ApiGateway"},
+        "ParentId": {"Fn::GetAtt": ["ApiGateway", "RootResourceId"]},
+        "PathPart": "classify"
+      }
+    },
+    "ApiGatewayMethod": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "RestApiId": {"Ref": "ApiGateway"},
+        "ResourceId": {"Ref": "ApiGatewayResource"},
+        "HttpMethod": "POST",
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "Type": "AWS_PROXY",
+          "IntegrationHttpMethod": "POST",
+          "Uri": {
+            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${RecyclingClassifierFunction.Arn}/invocations"
+          }
+        }
+      }
+    },
+    "LambdaApiGatewayPermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {"Ref": "RecyclingClassifierFunction"},
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*"
+        }
+      }
+    },
+    "ApiGatewayDeployment": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "DependsOn": ["ApiGatewayMethod"],
+      "Properties": {
+        "RestApiId": {"Ref": "ApiGateway"},
+        "StageName": "prod"
+      }
+    }
+  },
+  "Outputs": {
+    "ApiEndpoint": {
+      "Description": "API Gateway endpoint URL",
+      "Value": {
+        "Fn::Sub": "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/classify"
+      }
+    },
+    "S3BucketName": {
+      "Description": "S3 bucket for storing models and data",
+      "Value": {"Ref": "RecyclingAssistantBucket"}
+    },
+    "SageMakerRoleArn": {
+      "Description": "SageMaker execution role ARN",
+      "Value": {"Fn::GetAtt": ["SageMakerExecutionRole", "Arn"]}
+    }
+  }
+}
