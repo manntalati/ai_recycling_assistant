@@ -1,0 +1,16 @@
+{
+  "resourceName": "recyclingBucket",
+  "policyUUID": "5469f8e7",
+  "bucketName": "recycling-assistant",
+  "storageAccess": "authAndGuest",
+  "guestAccess": [
+    "READ"
+  ],
+  "authAccess": [
+    "CREATE_AND_UPDATE",
+    "READ",
+    "DELETE"
+  ],
+  "triggerFunction": "NONE",
+  "groupAccess": {}
+}

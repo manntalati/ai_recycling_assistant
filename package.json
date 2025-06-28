@@ -6,6 +6,7 @@
     "@aws-sdk/credential-provider-cognito-identity": "^3.835.0",
     "@aws-sdk/credential-providers": "^3.835.0",
     "aws-amplify": "^6.15.1",
-    "expo-image-picker": "^16.1.4"
+    "expo-image-picker": "^16.1.4",
+    "react-native-get-random-values": "^1.11.0"
   }
 }

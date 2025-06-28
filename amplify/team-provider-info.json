@@ -1,0 +1,23 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-airecyclingassistant-dev-64b0e-authRole",
+      "UnauthRoleArn": "arn:aws:iam::872752221913:role/amplify-airecyclingassistant-dev-64b0e-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::872752221913:role/amplify-airecyclingassistant-dev-64b0e-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-airecyclingassistant-dev-64b0e-deployment",
+      "UnauthRoleName": "amplify-airecyclingassistant-dev-64b0e-unauthRole",
+      "StackName": "amplify-airecyclingassistant-dev-64b0e",
+      "StackId": "arn:aws:cloudformation:us-east-1:872752221913:stack/amplify-airecyclingassistant-dev-64b0e/11e39bb0-53c4-11f0-826a-0ec048ae6caf",
+      "AmplifyAppId": "d34gr3ee1a3bni"
+    },
+    "categories": {
+      "auth": {
+        "airecyclingassistantf1cdf8ac": {}
+      },
+      "storage": {
+        "recyclingBucket": {}
+      }
+    }
+  }
+}
