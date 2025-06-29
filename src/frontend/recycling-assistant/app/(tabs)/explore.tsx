@@ -1,65 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { StyleSheet, Text, View, Button, SafeAreaView, Image, Alert } from 'react-native';
-import { useState, useEffect } from 'react';
-import 'react-native-get-random-values';
-import { Amplify } from '@aws-amplify/core';
-import awsconfig from '../aws-exports';
-import { uploadData } from '@aws-amplify/storage';
-import { fetchAuthSession } from '@aws-amplify/auth';
+import { StyleSheet, Text, View, Button, SafeAreaView, Image, Alert, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import * as FileSystem from 'expo-file-system';
 
-Amplify.configure(awsconfig);
+const API_GATEWAY_URL = 'https://zg6glpebc0.execute-api.us-east-1.amazonaws.com/prod/classify';
 
 export default function TabTwoScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [prediction, setPrediction] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [prediction, setPrediction] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    initializeAuth();
-  }, []);
-
-  async function initializeAuth() {
-    try {
-      const session = await fetchAuthSession();
-      console.log('Session details:', {
-        credentials: !!session.credentials,
-        identityId: session.identityId,
-        tokens: !!session.tokens
-      });
-      
-      if (session.credentials) {
-        setIsAuthenticated(true);
-        console.log('Authentication successful with Cognito Identity Pool');
-        console.log('Identity ID:', session.identityId);
-      } else {
-        console.log('No credentials in session, forcing refresh...');
-        const refreshedSession = await fetchAuthSession({ forceRefresh: true });
-        if (refreshedSession.credentials) {
-          setIsAuthenticated(true);
-          console.log('Authentication successful after refresh');
-        } else {
-          throw new Error('No credentials available after refresh');
-        }
-      }
-    } catch (error) {
-      console.log('Authentication error:', error);
-      console.log('Full error object:', JSON.stringify(error, null, 2));
-      
-      // Try alternative approach - still attempt upload without explicit auth check
-      console.log('Attempting to proceed without explicit auth check...');
-      setIsAuthenticated(true); // Allow user to try uploading
-      
-      Alert.alert(
-        'Authentication Warning', 
-        'Could not verify AWS credentials. You can still try uploading - it may work if your Cognito pool is configured correctly.',
-        [{ text: 'OK' }]
-      );
-    }
-  }
-
-  async function classify() {
+  async function takePhoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission Required', 'Sorry, we need camera permissions to take a photo!');
@@ -76,11 +28,11 @@ export default function TabTwoScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const uri = result.assets[0].uri;
       setImageUri(uri);
-      await uploadAndPredict(uri);
+      await classifyImage(uri);
     }
   }
 
-  async function upload() {
+  async function selectFromGallery() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -91,122 +43,143 @@ export default function TabTwoScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const uri = result.assets[0].uri;
       setImageUri(uri);
-      await uploadAndPredict(uri);
+      await classifyImage(uri);
     }
   }
 
-  async function uploadAndPredict(uri: string) {
-    if (!isAuthenticated) {
-      Alert.alert('Error', 'Not authenticated with AWS');
-      return;
-    }
-
-    setIsUploading(true);
+  async function classifyImage(uri: string) {
+    setIsProcessing(true);
     setPrediction(null);
 
     try {
-      // Read the file as a blob
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-      const timestamp = Date.now();
-      const fileName = `uploads/${timestamp}-image.jpg`;
+      console.log('Image converted to base64, length:', base64.length);
 
-      // Upload to S3
-      const result = await uploadData({
-        path: fileName,
-        data: blob,
-        options: {
-          onProgress: ({ transferredBytes, totalBytes }) => {
-            if (totalBytes) {
-              const progress = Math.round((transferredBytes / totalBytes) * 100);
-              console.log(`Upload progress: ${progress}%`);
-            }
-          },
-        },
-      }).result;
-
-      console.log("Upload successful! Path:", result.path);
-
-      // Call your API Gateway endpoint for prediction
-      await getPrediction(fileName);
-
-    } catch (error) {
-      console.log("Upload error:", error);
-      Alert.alert('Upload Failed', 'Failed to upload image to S3');
-    } finally {
-      setIsUploading(false);
-    }
-  }
-
-  async function getPrediction(s3Key: string) {
-    try {
-      // Replace with your actual API Gateway endpoint URL
-      const API_ENDPOINT = 'https://your-api-id.execute-api.us-east-1.amazonaws.com/dev/predict';
-      
-      const response = await fetch(API_ENDPOINT, {
+      const response = await fetch(API_GATEWAY_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          s3_key: s3Key,
-          bucket_name: awsconfig.aws_user_files_s3_bucket
+          image: base64
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setPrediction(data.prediction || 'No prediction available');
-      } else {
-        throw new Error('Prediction API call failed');
+      console.log('API Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('API Error response:', errorText);
+        throw new Error(`API call failed with status ${response.status}: ${errorText}`);
       }
+
+      const data = await response.json();
+      console.log('Prediction result:', data);
+      
+      setPrediction(data);
+      
+      Alert.alert(
+        'Classification Complete!', 
+        `Predicted: ${data.predicted_class}\nConfidence: ${(data.confidence_score * 100).toFixed(1)}%`,
+        [{ text: 'OK' }]
+      );
+
     } catch (error) {
-      console.log('Prediction error:', error);
-      setPrediction('Prediction failed');
+      console.error('Classification error:', error);
+      Alert.alert(
+        'Classification Failed', 
+        `Error`,
+        [{ text: 'OK' }]
+      );
+      setPrediction({ error: 'error' });
+    } finally {
+      setIsProcessing(false);
     }
   }
+
+  const renderPredictionResult = () => {
+    if (!prediction) return null;
+
+    if (prediction.error) {
+      return (
+        <View style={styles.resultContainer}>
+          <Text style={[styles.resultText, styles.errorText]}>
+            Error
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.resultContainer}>
+        <Text style={[styles.resultText, styles.successText]}>
+          🗂️ Category: {prediction.predicted_class}
+        </Text>
+        <Text style={styles.confidenceText}>
+          📊 Confidence: {(prediction.confidence_score * 100).toFixed(1)}%
+        </Text>
+        
+        {prediction.all_predictions && (
+          <View style={styles.allPredictions}>
+            <Text style={styles.allPredictionsTitle}>All Predictions:</Text>
+            {Object.entries(prediction.all_predictions).map(([category, score], index) => (
+              <Text key={index} style={styles.predictionItem}>
+                {category}: {((score as number) * 100).toFixed(1)}%
+              </Text>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>AI Recycling Assistant</Text>
-        <Text style={styles.status}>
-          Status: {isAuthenticated ? 'Connected' : 'Connecting...'}
-        </Text>
+        <Text style={styles.subtitle}>Classify Your Image Below!</Text>
       </View>
 
-      <View style={styles.button}>
-        <Ionicons name='camera-outline' size={20} style={styles.icon} />
-        <Button 
-          title='Take Photo' 
-          onPress={classify} 
-          disabled={!isAuthenticated || isUploading}
-        />
-      </View>
+      <View style={styles.buttonContainer}>
+        <View style={styles.button}>
+          <Ionicons name='camera-outline' size={20} style={styles.icon} />
+          <Button 
+            title='Take Photo' 
+            onPress={takePhoto} 
+            disabled={isProcessing}
+          />
+        </View>
 
-      <View style={styles.button}>
-        <Ionicons name="images-outline" size={20} style={styles.icon} />
-        <Button 
-          title='Upload from Gallery' 
-          onPress={upload} 
-          disabled={!isAuthenticated || isUploading}
-        />
+        <View style={styles.button}>
+          <Ionicons name="images-outline" size={20} style={styles.icon} />
+          <Button 
+            title='Choose from Gallery' 
+            onPress={selectFromGallery} 
+            disabled={isProcessing}
+          />
+        </View>
       </View>
       
-      <View style={styles.image2}>
-        {isUploading && <Text style={styles.text}>Uploading and analyzing...</Text>}
-        
-        {prediction && (
-          <Text style={[styles.text, styles.predictionText]}>
-            Prediction: {prediction}
-          </Text>
+      <View style={styles.contentContainer}>
+        {isProcessing && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2196F3" />
+            <Text style={styles.loadingText}>Analyzing image...</Text>
+          </View>
         )}
+        
+        {renderPredictionResult()}
         
         {imageUri ? (
           <Image source={{ uri: imageUri }} style={styles.image} />
         ) : (
-          <Text style={styles.placeholder}>No image selected</Text>
+          <View style={styles.placeholderContainer}>
+            <Ionicons name="image-outline" size={60} color="#ccc" />
+            <Text style={styles.placeholder}>No image selected</Text>
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -214,77 +187,118 @@ export default function TabTwoScreen() {
 }
 
 const styles = StyleSheet.create({
-  successText: {
-    color: "green",
-  },
-  failureText: {
-    color: "red",
-  },
-  text: {
-    justifyContent: 'flex-start',
-    alignContent: 'flex-start',
-    alignItems: 'flex-start',
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  predictionText: {
-    fontWeight: 'bold',
-    color: '#2196F3',
-  },
-  status: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 5,
-  },
-  image2: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 30,
-    padding: 20,
-  },
-  image: {
-    width: 300,
-    height: 400,
-    borderRadius: 12,
-    resizeMode: 'cover',
-    marginTop: 10,
-  },
-  placeholder: {
-    fontSize: 16,
-    color: '#888',
-    marginTop: 20,
-  },
-  icon: {
-    marginRight: 8,
-  },
-  label: {
-    color: '#black',
-    fontSize: 18,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
   header: {
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: 80,
-    backgroundColor: "#f5f5f5",
-    marginBottom: 30,
+    backgroundColor: "white",
     paddingVertical: 20,
+    marginBottom: 20,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
   },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 5,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    paddingHorizontal: 20,
+  },
   button: {
     backgroundColor: '#f0f0f0',
     flexDirection: 'row',
-    margin: 15,
+    marginBottom: 15,
     padding: 15,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  container: {
+  icon: {
+    marginRight: 8,
+  },
+  contentContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  resultContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+    width: '100%',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
+  resultText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  successText: {
+    color: '#28a745',
+  },
+  errorText: {
+    color: '#dc3545',
+  },
+  confidenceText: {
+    fontSize: 16,
+    color: '#6c757d',
+    marginBottom: 10,
+  },
+  allPredictions: {
+    marginTop: 10,
+  },
+  allPredictionsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#495057',
+  },
+  predictionItem: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginLeft: 10,
+  },
+  image: {
+    width: 300,
+    height: 400,
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
+  placeholderContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+  },
+  placeholder: {
+    fontSize: 16,
+    color: '#888',
+    marginTop: 10,
   },
 });
