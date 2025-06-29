@@ -17,13 +17,11 @@ export default function TabTwoScreen() {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    // Initialize anonymous authentication
     initializeAuth();
   }, []);
 
   async function initializeAuth() {
     try {
-      // Get credentials from Cognito Identity Pool (works for unauthenticated users)
       const session = await fetchAuthSession();
       console.log('Session details:', {
         credentials: !!session.credentials,
@@ -37,7 +35,6 @@ export default function TabTwoScreen() {
         console.log('Identity ID:', session.identityId);
       } else {
         console.log('No credentials in session, forcing refresh...');
-        // Try to force refresh credentials
         const refreshedSession = await fetchAuthSession({ forceRefresh: true });
         if (refreshedSession.credentials) {
           setIsAuthenticated(true);
