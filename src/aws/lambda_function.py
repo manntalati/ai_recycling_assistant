@@ -36,7 +36,7 @@ def lambda_handler(event, context):
         image_key = f"images/{timestamp}_{unique_id}.jpg"
         try:
             img = Image.open(io.BytesIO(image_data)).convert("RGB")
-            resized_img = img.resize((256, 512))
+            resized_img = img.resize((224, 224))
             img_array = np.array(resized_img, dtype=np.float32)
             img_array = img_array / 255.0
             img_array = np.expand_dims(img_array, axis=0)
