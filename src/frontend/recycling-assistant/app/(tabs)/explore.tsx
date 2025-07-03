@@ -3,8 +3,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { StyleSheet, Text, View, Button, SafeAreaView, Image, Alert, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 
-const API_GATEWAY_URL = 'https://zg6glpebc0.execute-api.us-east-1.amazonaws.com/prod/classify';
+const API_GATEWAY_URL = 'https://fv4kq08sea.execute-api.us-east-1.amazonaws.com/prod/recycling-assistant';
 
 export default function TabTwoScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export default function TabTwoScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.65,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -52,53 +53,53 @@ export default function TabTwoScreen() {
     setPrediction(null);
 
     try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      console.log('Image converted to base64, length:', base64.length);
-
-      const response = await fetch(API_GATEWAY_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: base64
-        }),
-      });
-
-      console.log('API Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log('API Error response:', errorText);
-        throw new Error(`API call failed with status ${response.status}: ${errorText}`);
+    // 1️⃣ Resize & compress locally to model’s 256×512 JPEG, and grab base64
+    const manipResult = await ImageManipulator.manipulateAsync(
+      uri,
+      [
+        
+        { resize: { width: 224, height: 224 } }
+      ],
+      {
+        compress: 0.2,                         // tune between 0.5–0.8
+        format: ImageManipulator.SaveFormat.JPEG,
+        base64: true
       }
+    );
 
-      const data = await response.json();
-      console.log('Prediction result:', data);
-      
-      setPrediction(data);
-      
-      Alert.alert(
-        'Classification Complete!', 
-        `Predicted: ${data.predicted_class}\nConfidence: ${(data.confidence_score * 100).toFixed(1)}%`,
-        [{ text: 'OK' }]
-      );
+    const smallBase64 = manipResult.base64!;
+    console.log('Resized to', manipResult.width, '×', manipResult.height);
+    console.log('Base64 length:', smallBase64.length);
 
-    } catch (error) {
-      console.error('Classification error:', error);
-      Alert.alert(
-        'Classification Failed', 
-        `Error`,
-        [{ text: 'OK' }]
-      );
-      setPrediction({ error: 'error' });
-    } finally {
-      setIsProcessing(false);
+    // 2️⃣ POST to your API Gateway
+    const response = await fetch(API_GATEWAY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: smallBase64 }),
+    });
+
+    console.log('API status:', response.status);
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errText}`);
     }
+
+    const data = await response.json();
+    console.log('Prediction:', data);
+    setPrediction(data);
+
+    Alert.alert(
+      'Done!',
+      `Predicted: ${data.predicted_class}\nConfidence: ${(data.confidence_score*100).toFixed(1)}%`
+    );
+  } catch (err: any) {
+    console.error('classifyImage error:', err);
+    Alert.alert('Error', err.message || 'Unknown');
+    setPrediction({ error: true });
+  } finally {
+    setIsProcessing(false);
   }
+}
 
   const renderPredictionResult = () => {
     if (!prediction) return null;
