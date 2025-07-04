@@ -81,5 +81,6 @@ npm start
 ```
 
 ## Future Implementations
+- Train the model on more images to include more variety than just TrashNet
 - s3 specific buckets for each user to query old and new predictions for each user
 - Caching to identify already present images within the s3 buckets 

@@ -1,10 +1,7 @@
-# Python Environment
 tf-env/
 venv/
 env/
 .env
-
-# Model Files and Data
 models/
 model_dir/
 tmp_model/
@@ -22,27 +19,19 @@ model.tar.gz
 new_model.tar.gz
 model_224_restyled.tar.gz
 restructured_model.tar.gz
-
-# Notebook Outputs and Temporary Files
 src/notebooks/my_dir*/
 src/notebooks/model_dir
 src/aws/model_contents/
 src/aws/restructured_model.tar.gz
 src/notebooks/restructured_model.tar.gz
-
-# Node.js and React Native
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Expo
 .expo/
 .expo-shared/
 dist/
 web-build/
-
-# React Native
 *.jks
 *.p8
 *.p12
@@ -50,19 +39,13 @@ web-build/
 *.mobileprovision
 *.orig.*
 *.tsbundle
-
-# macOS
 .DS_Store
 data/.DS_Store
-
-# IDE and Editor Files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# AWS Amplify
 amplify/\#current-cloud-backend
 amplify/.config/local-*
 amplify/logs
@@ -80,56 +63,27 @@ amplify-gradle-config.json
 amplifytools.xcconfig
 .secret-*
 **.sample
-
-# iOS
 ios/build/
 ios/Pods/
 ios/*.xcworkspace/xcshareddata/
 ios/*.xcodeproj/xcshareddata/
-
-# Android
 android/app/build/
 android/build/
 android/gradle/
 android/local.properties
 android/.gradle/
-
-# Testing
-coverage/
-.nyc_output/
-
-# Logs
 logs/
 *.log
-
-# Runtime data
 pids/
 *.pid
 *.seed
 *.pid.lock
-
-# Coverage directory used by tools like istanbul
-coverage/
-
-# Dependency directories
 node_modules/
 jspm_packages/
-
-# Optional npm cache directory
 .npm
-
-# Optional REPL history
 .node_repl_history
-
-# Output of 'npm pack'
 *.tgz
-
-# Yarn Integrity file
 .yarn-integrity
-
-# dotenv environment variables file
 .env
-
-# Temporary folders
 tmp/
 temp/
