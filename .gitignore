@@ -5,7 +5,22 @@ src/notebooks/my_dir2
 src/notebooks/my_dir3
 src/notebooks/my_dir4
 src/notebooks/my_dir5
+src/notebooks/my_dir6
+src/notebooks/model_dir
+src/aws/model_contents/
+src/aws/restructured_model.tar.gz
+src/notebooks/restructured_model.tar.gz
+tmp_model/
+lambda-layer.zip
+model_224.tar.gz
+model.tar.gz
+new_model.tar.gz
+model_224_restyled.tar.gz
+model_dir/
 node_modules/
+export/
+.DS_Store
+data/.DS_Store
 
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
