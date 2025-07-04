@@ -58,7 +58,7 @@ The AI Recycling Assistant aims to solve the global problem of improper waste di
 
 1. **Clone the repository**
    ```bash
-   git clone (https://github.com/manntalati/ai_recycling_assistant.git)
+   git clone https://github.com/manntalati/ai_recycling_assistant.git
    cd ai_recycling_assistant
    ```
 
