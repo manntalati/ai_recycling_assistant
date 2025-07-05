@@ -8,6 +8,7 @@
     "aws-amplify": "^6.15.1",
     "expo-image-manipulator": "^13.1.7",
     "expo-image-picker": "^16.1.4",
-    "react-native-get-random-values": "^1.11.0"
+    "react-native-get-random-values": "^1.11.0",
+    "expo-updates": "~0.28.16"
   }
 }

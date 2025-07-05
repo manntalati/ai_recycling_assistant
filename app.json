@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "8173cc2d-4687-41e8-b74b-8e0e7f200de0"
+      }
+    },
+    "owner": "manntalati",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8173cc2d-4687-41e8-b74b-8e0e7f200de0"
+    },
+    "android": {},
+    "ios": {}
+  }
+}
