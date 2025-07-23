@@ -27,7 +27,8 @@ The AI Recycling Assistant aims to solve the global problem of improper waste di
 - **Real-time Processing**: Fast inference via AWS SageMaker
 
 ## Demonstration
-Coming soon!
+Demonstration Video: [Link](https://youtube.com/shorts/5wptdo9xlQU)
+
 Link to view expo QR code and view project: [QR Code](https://expo.dev/preview/update?message=updates&updateRuntimeVersion=1.0.0&createdAt=2025-07-05T15%3A47%3A17.334Z&slug=exp&projectId=43376e04-454e-49c9-82ea-ca2123549bac&group=cf80674f-d242-40d0-8aa8-9ef9f35f2bd1)
 
 ## Technology Stack
